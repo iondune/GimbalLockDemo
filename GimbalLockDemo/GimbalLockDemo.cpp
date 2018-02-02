@@ -91,6 +91,7 @@ int main()
 
 	SharedPointer<IShader> DiffuseShader = AssetManager->LoadShader("Diffuse");
 	SharedPointer<IShader> TextureShader = AssetManager->LoadShader("Texture");
+	SharedPointer<IShader> ColorShader = AssetManager->LoadShader("Color");
 	SharedPointer<IShader> QuadCopyShader = AssetManager->LoadShader("QuadCopy");
 
 
@@ -125,7 +126,7 @@ int main()
 	vec3f LightDirection = vec3f(4, -12, 4);
 	float LightViewSize = 20.f;
 	float LightNear = 115.f;
-	float LightFar = 145.f;
+	float LightFar = 150.f;
 
 	COrthographicCamera * LightCamera = new COrthographicCamera(-LightViewSize, LightViewSize, -LightViewSize, LightViewSize);
 	LightCamera->SetPosition(-LightDirection * 10.f);
@@ -145,6 +146,7 @@ int main()
 	color3f const PlaneColor = color3f(0.5f);
 	Plane->GetMaterial().Ambient *= PlaneColor;
 	Plane->GetMaterial().Diffuse *= PlaneColor;
+	Plane->SetPosition(vec3f(0, -4, 0));
 	ColorPass->AddSceneObject(Plane);
 	ShadowPass->AddSceneObject(Plane);
 
@@ -156,6 +158,17 @@ int main()
 	ShipMeshObject->SetScale(vec3f(0.2f));
 	ColorPass->AddSceneObject(ShipMeshObject);
 	ShadowPass->AddSceneObject(ShipMeshObject);
+
+	CCoordinateFrameSceneObject * WorldFrame = new CCoordinateFrameSceneObject();
+	WorldFrame->SetShader(ColorShader);
+	WorldFrame->SetPosition(vec3f(0, 2, 0));
+	ColorPass->AddSceneObject(WorldFrame);
+	ShadowPass->AddSceneObject(WorldFrame);
+
+	CCoordinateFrameSceneObject * ShipFrame = new CCoordinateFrameSceneObject();
+	ShipFrame->SetShader(ColorShader);
+	ColorPass->AddSceneObject(ShipFrame);
+	ShadowPass->AddSceneObject(ShipFrame);
 
 	CSimpleMesh * RingMesh = AssetManager->LoadMeshMerged("ring.obj");
 	RingMesh->CalculateNormalsPerFace();
@@ -235,6 +248,16 @@ int main()
 			//ImGui::SliderFloat3("Light Direction", LightDirection.Values, -30.f, 30.f);
 			ImGui::Text("Light Position: %.3f %.3f %.3f", LightCamera->GetPosition().X, LightCamera->GetPosition().Y, LightCamera->GetPosition().Z);
 
+			if (ImGui::Button("Reset"))
+			{
+				rotation = 0.f;
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Lock"))
+			{
+				rotation = vec3f(90, 90, -90);
+			}
+
 			float const max = 180.f;
 			ImGui::SliderFloat("Rotation (X)", &rotation.X, -max, max);
 			ImGui::SliderFloat("Rotation (Y)", &rotation.Y, -max, max);
@@ -259,21 +282,32 @@ int main()
 
 
 		glm::mat4 m = glm::mat4(1.f);
+		glm::mat4 top = glm::mat4(1.f);
 
 		m = glm::rotate(m, glm::radians(rotation.X), glm::vec3(1, 0, 0));
-		RingObjects[0]->SetRotation(glm::rotate(m, glm::radians(-90.f), glm::vec3(1, 0, 0)));
+		top = m;
+		top = glm::rotate(top, glm::radians(-90.f), glm::vec3(1, 0, 0));
+		top = glm::rotate(top, glm::radians(-90.f), glm::vec3(0, 1, 0));
+		RingObjects[0]->SetRotation(top);
 
 		m = glm::rotate(m, glm::radians(rotation.Y), glm::vec3(0, 1, 0));
-		RingObjects[1]->SetRotation(m);
+		top = m;
+		top = glm::rotate(top, glm::radians(-90.f), glm::vec3(0, 1, 0));
+		top = glm::rotate(top, glm::radians(-90.f), glm::vec3(1, 0, 0));
+		RingObjects[1]->SetRotation(top);
 
 		m = glm::rotate(m, glm::radians(rotation.Z), glm::vec3(0, 0, 1));
-		RingObjects[2]->SetRotation(m);
+		top = m;
+		//top = glm::rotate(top, glm::radians(-90.f), glm::vec3(1, 0, 0));
+		RingObjects[2]->SetRotation(top);
 
 
 		m = glm::rotate(m, glm::radians(-90.f), glm::vec3(1, 0, 0));
 		ShipMeshObject->SetRotation(m);
 
-
+		ShipFrame->SetPosition(ShipMeshObject->GetPosition());
+		ShipFrame->SetRotation(m);
+		ShipFrame->SetScale(3.f);
 
 
 		ShadowBuffer->ClearColorAndDepth();
