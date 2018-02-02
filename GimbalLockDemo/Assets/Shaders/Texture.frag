@@ -57,6 +57,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 
 void main()
 {
+	vec4 TextureColor = texture(uMaterial.DiffuseTexture, fTexCoords);
 	vec3 Diffuse = vec3(0);
 
 	for (int i = 0; i < LIGHT_MAX && i < uDirectionalLightsCount; ++ i)
@@ -65,16 +66,16 @@ void main()
 		vec3 nNormal = normalize(fNormal);
 
 		float Shading = clamp(dot(nNormal, nLight), 0.0, 1.0);
-		Diffuse += uMaterial.DiffuseColor * Shading * uDirectionalLights[i].Color * texture(uMaterial.DiffuseTexture, fTexCoords).rgb;
+		Diffuse += uMaterial.DiffuseColor * Shading * uDirectionalLights[i].Color;
 	}
 
 	float Shadow = ShadowCalculation(fLightSpacePosition);
-	outColor = vec4((1.0  - Shadow) * Diffuse + uMaterial.AmbientColor * 0.75, 1);
+	outColor = vec4((1.0  - Shadow) * Diffuse + uMaterial.AmbientColor * 0.75, 1) * TextureColor;
 
 	if (Shadow > 0.0)
 	{
 		// outColor.rgb = vec3(0.0, 1.0, 1.0);
 	}
 
-	outColor = texture(uMaterial.DiffuseTexture, fTexCoords).rgba;
+	// outColor = texture(uMaterial.DiffuseTexture, fTexCoords).rgba;
 }

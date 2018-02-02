@@ -124,8 +124,8 @@ int main()
 
 	vec3f LightDirection = vec3f(4, -12, 4);
 	float LightViewSize = 20.f;
-	float LightNear = 110.f;
-	float LightFar = 130.f;
+	float LightNear = 115.f;
+	float LightFar = 145.f;
 
 	COrthographicCamera * LightCamera = new COrthographicCamera(-LightViewSize, LightViewSize, -LightViewSize, LightViewSize);
 	LightCamera->SetPosition(-LightDirection * 10.f);
@@ -239,6 +239,9 @@ int main()
 			ImGui::SliderFloat("Rotation (X)", &rotation.X, -max, max);
 			ImGui::SliderFloat("Rotation (Y)", &rotation.Y, -max, max);
 			ImGui::SliderFloat("Rotation (Z)", &rotation.Z, -max, max);
+
+			//ImGui::Image(GUIManager->GetTextureID(ShadowTexture), vec2f(512));
+			//ImGui::Image(GUIManager->GetTextureID(ShadowDepth), vec2f(512));
 		}
 		ImGui::End();
 
