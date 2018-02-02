@@ -229,6 +229,7 @@ int main()
 	while (WindowManager->Run())
 	{
 		TimeManager->Update();
+		float const Elapsed = (float) TimeManager->GetElapsedTime();
 
 		PostProcessObject->SetVisible(Window->IsKeyDown(EKey::F1));
 
@@ -267,6 +268,32 @@ int main()
 			//ImGui::Image(GUIManager->GetTextureID(ShadowDepth), vec2f(512));
 		}
 		ImGui::End();
+
+		float const RotationSpeed = 30.f * Elapsed;
+		if (Window->IsKeyDown(EKey::U))
+		{
+			rotation.X += RotationSpeed;
+		}
+		if (Window->IsKeyDown(EKey::J))
+		{
+			rotation.X -= RotationSpeed;
+		}
+		if (Window->IsKeyDown(EKey::I))
+		{
+			rotation.Y += RotationSpeed;
+		}
+		if (Window->IsKeyDown(EKey::K))
+		{
+			rotation.Y -= RotationSpeed;
+		}
+		if (Window->IsKeyDown(EKey::O))
+		{
+			rotation.Z += RotationSpeed;
+		}
+		if (Window->IsKeyDown(EKey::L))
+		{
+			rotation.Z -= RotationSpeed;
+		}
 
 		LightCamera->SetLeft(-LightViewSize);
 		LightCamera->SetRight(LightViewSize);
