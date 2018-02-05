@@ -6,6 +6,8 @@
 #include <ionApplication.h>
 #include <ionGUI.h>
 
+#include <glm/gtc/quaternion.hpp>
+
 using namespace ion;
 using namespace ion::Scene;
 using namespace ion::Graphics;
@@ -224,6 +226,8 @@ int main()
 	///////////////
 
 	vec3f rotation;
+	glm::quat q;
+	bool UseQuat = false;
 
 	TimeManager->Init(WindowManager);
 	while (WindowManager->Run())
@@ -235,6 +239,7 @@ int main()
 
 		GUIManager->NewFrame();
 		ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiSetCond_Once);
+		ImGui::SetNextWindowSize(ImVec2(450, 450), ImGuiSetCond_Once);
 		if (ImGui::Begin("Settings"))
 		{
 			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -249,51 +254,114 @@ int main()
 			//ImGui::SliderFloat3("Light Direction", LightDirection.Values, -30.f, 30.f);
 			ImGui::Text("Light Position: %.3f %.3f %.3f", LightCamera->GetPosition().X, LightCamera->GetPosition().Y, LightCamera->GetPosition().Z);
 
-			if (ImGui::Button("Reset"))
+			if (ImGui::RadioButton("Euler Angles", UseQuat == false))
 			{
-				rotation = 0.f;
+				UseQuat = false;
+
+				for (int i = 0; i < 3; ++ i)
+				{
+					RingObjects[i]->SetVisible(true);
+				}
 			}
-			ImGui::SameLine();
-			if (ImGui::Button("Lock"))
+			if (ImGui::RadioButton("Quaternions", UseQuat == true))
 			{
-				rotation = vec3f(90, 90, -90);
+				UseQuat = true;
+
+				for (int i = 0; i < 3; ++ i)
+				{
+					RingObjects[i]->SetVisible(false);
+				}
 			}
 
-			float const max = 180.f;
-			ImGui::SliderFloat("Rotation (X)", &rotation.X, -max, max);
-			ImGui::SliderFloat("Rotation (Y)", &rotation.Y, -max, max);
-			ImGui::SliderFloat("Rotation (Z)", &rotation.Z, -max, max);
+			if (! UseQuat)
+			{
+				if (ImGui::Button("Reset"))
+				{
+					rotation = 0.f;
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Lock"))
+				{
+					rotation = vec3f(90, 90, -90);
+				}
+
+				float const max = 180.f;
+				ImGui::SliderFloat("Rotation (X)", &rotation.X, -max, max);
+				ImGui::SliderFloat("Rotation (Y)", &rotation.Y, -max, max);
+				ImGui::SliderFloat("Rotation (Z)", &rotation.Z, -max, max);
+
+				float const RotationSpeed = 45.f * Elapsed;
+				if (Window->IsKeyDown(EKey::U))
+				{
+					rotation.X += RotationSpeed;
+				}
+				if (Window->IsKeyDown(EKey::J))
+				{
+					rotation.X -= RotationSpeed;
+				}
+				if (Window->IsKeyDown(EKey::I))
+				{
+					rotation.Y += RotationSpeed;
+				}
+				if (Window->IsKeyDown(EKey::K))
+				{
+					rotation.Y -= RotationSpeed;
+				}
+				if (Window->IsKeyDown(EKey::O))
+				{
+					rotation.Z += RotationSpeed;
+				}
+				if (Window->IsKeyDown(EKey::L))
+				{
+					rotation.Z -= RotationSpeed;
+				}
+			}
+
+			if (UseQuat)
+			{
+				vec3f relative;
+				float const max = 2.f;
+				ImGui::SliderFloat("Rotation (X)", &relative.X, -max, max);
+				ImGui::SliderFloat("Rotation (Y)", &relative.Y, -max, max);
+				ImGui::SliderFloat("Rotation (Z)", &relative.Z, -max, max);
+				relative *= Elapsed;
+
+				float const Speed = 1.f * Elapsed;
+				if (Window->IsKeyDown(EKey::U))
+				{
+					relative.X += Speed;
+				}
+				if (Window->IsKeyDown(EKey::J))
+				{
+					relative.X -= Speed;
+				}
+				if (Window->IsKeyDown(EKey::I))
+				{
+					relative.Y += Speed;
+				}
+				if (Window->IsKeyDown(EKey::K))
+				{
+					relative.Y -= Speed;
+				}
+				if (Window->IsKeyDown(EKey::O))
+				{
+					relative.Z += Speed;
+				}
+				if (Window->IsKeyDown(EKey::L))
+				{
+					relative.Z -= Speed;
+				}
+
+				q = glm::rotate(q, relative.X, glm::vec3(1, 0, 0));
+				q = glm::rotate(q, relative.Y, glm::vec3(0, 1, 0));
+				q = glm::rotate(q, relative.Z, glm::vec3(0, 0, 1));
+			}
 
 			//ImGui::Image(GUIManager->GetTextureID(ShadowTexture), vec2f(512));
 			//ImGui::Image(GUIManager->GetTextureID(ShadowDepth), vec2f(512));
 		}
 		ImGui::End();
 
-		float const RotationSpeed = 30.f * Elapsed;
-		if (Window->IsKeyDown(EKey::U))
-		{
-			rotation.X += RotationSpeed;
-		}
-		if (Window->IsKeyDown(EKey::J))
-		{
-			rotation.X -= RotationSpeed;
-		}
-		if (Window->IsKeyDown(EKey::I))
-		{
-			rotation.Y += RotationSpeed;
-		}
-		if (Window->IsKeyDown(EKey::K))
-		{
-			rotation.Y -= RotationSpeed;
-		}
-		if (Window->IsKeyDown(EKey::O))
-		{
-			rotation.Z += RotationSpeed;
-		}
-		if (Window->IsKeyDown(EKey::L))
-		{
-			rotation.Z -= RotationSpeed;
-		}
 
 		LightCamera->SetLeft(-LightViewSize);
 		LightCamera->SetRight(LightViewSize);
@@ -307,34 +375,47 @@ int main()
 		uLightMatrix = LightCamera->GetProjectionMatrix() * LightCamera->GetViewMatrix();
 
 
+		if (! UseQuat)
+		{
+			glm::mat4 m = glm::mat4(1.f);
+			glm::mat4 top = glm::mat4(1.f);
 
-		glm::mat4 m = glm::mat4(1.f);
-		glm::mat4 top = glm::mat4(1.f);
+			m = glm::rotate(m, glm::radians(rotation.X), glm::vec3(1, 0, 0));
+			top = m;
+			top = glm::rotate(top, glm::radians(-90.f), glm::vec3(1, 0, 0));
+			top = glm::rotate(top, glm::radians(-90.f), glm::vec3(0, 1, 0));
+			RingObjects[0]->SetRotation(top);
 
-		m = glm::rotate(m, glm::radians(rotation.X), glm::vec3(1, 0, 0));
-		top = m;
-		top = glm::rotate(top, glm::radians(-90.f), glm::vec3(1, 0, 0));
-		top = glm::rotate(top, glm::radians(-90.f), glm::vec3(0, 1, 0));
-		RingObjects[0]->SetRotation(top);
+			m = glm::rotate(m, glm::radians(rotation.Y), glm::vec3(0, 1, 0));
+			top = m;
+			top = glm::rotate(top, glm::radians(-90.f), glm::vec3(0, 1, 0));
+			top = glm::rotate(top, glm::radians(-90.f), glm::vec3(1, 0, 0));
+			RingObjects[1]->SetRotation(top);
 
-		m = glm::rotate(m, glm::radians(rotation.Y), glm::vec3(0, 1, 0));
-		top = m;
-		top = glm::rotate(top, glm::radians(-90.f), glm::vec3(0, 1, 0));
-		top = glm::rotate(top, glm::radians(-90.f), glm::vec3(1, 0, 0));
-		RingObjects[1]->SetRotation(top);
-
-		m = glm::rotate(m, glm::radians(rotation.Z), glm::vec3(0, 0, 1));
-		top = m;
-		//top = glm::rotate(top, glm::radians(-90.f), glm::vec3(1, 0, 0));
-		RingObjects[2]->SetRotation(top);
+			m = glm::rotate(m, glm::radians(rotation.Z), glm::vec3(0, 0, 1));
+			top = m;
+			//top = glm::rotate(top, glm::radians(-90.f), glm::vec3(1, 0, 0));
+			RingObjects[2]->SetRotation(top);
 
 
-		m = glm::rotate(m, glm::radians(-90.f), glm::vec3(1, 0, 0));
-		ShipMeshObject->SetRotation(m);
+			m = glm::rotate(m, glm::radians(-90.f), glm::vec3(1, 0, 0));
+			ShipMeshObject->SetRotation(m);
 
-		ShipFrame->SetPosition(ShipMeshObject->GetPosition());
-		ShipFrame->SetRotation(m);
-		ShipFrame->SetScale(3.f);
+			ShipFrame->SetPosition(ShipMeshObject->GetPosition());
+			ShipFrame->SetRotation(m);
+			ShipFrame->SetScale(3.f);
+		}
+
+		if (UseQuat)
+		{
+			glm::mat4 m = glm::mat4_cast(q);
+			ShipMeshObject->SetRotation(m);
+
+			ShipFrame->SetPosition(ShipMeshObject->GetPosition());
+			ShipFrame->SetRotation(m);
+			ShipFrame->SetScale(3.f);
+		}
+
 
 
 		ShadowBuffer->ClearColorAndDepth();
